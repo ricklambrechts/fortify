@@ -86,15 +86,17 @@ class RedirectIfTwoFactorAuthenticatable
             });
         }
 
-        $model = $this->guard->getProvider()->getModel();
+        $user = $this->guard->getProvider()->retrieveByCredentials(
+            $request->only(Fortify::username(), 'password')
+        );
 
-        return tap($model::where(Fortify::username(), $request->{Fortify::username()})->first(), function ($user) use ($request) {
-            if (! $user || ! $this->guard->getProvider()->validateCredentials($user, ['password' => $request->password])) {
-                $this->fireFailedEvent($request, $user);
+        if (! $user || ! $this->guard->getProvider()->validateCredentials($user, ['password' => $request->password])) {
+            $this->fireFailedEvent($request, $user);
 
-                $this->throwFailedAuthenticationException($request);
-            }
-        });
+            $this->throwFailedAuthenticationException($request);
+        }
+
+        return $user;
     }
 
     /**
